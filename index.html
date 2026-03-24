@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Energia Solar • Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+:root{
+--bg:#f8fafc;
+--card:#ffffff;
+--text:#0f172a;
+--muted:#64748b;
+--border:#e5e7eb;
+--green:#16a34a;
+--red:#dc2626;
+--yellow:#f59e0b;
+}
+
+body{
+margin:0;
+font-family:Inter;
+background:var(--bg);
+color:var(--text);
+}
+
+.header{
+padding:20px;
+font-size:22px;
+font-weight:800;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:15px;
+padding:15px;
+}
+
+.card{
+background:var(--card);
+padding:18px;
+border-radius:16px;
+box-shadow:0 6px 20px rgba(0,0,0,.05);
+}
+
+.value{
+font-size:28px;
+font-weight:800;
+}
+
+.label{
+color:var(--muted);
+font-size:13px;
+}
+
+.chart{
+padding:15px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">⚡ Energia Solar • Mercatto</div>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="value" id="geracao">--</div>
+    <div class="label">Geração Atual (kW)</div>
+  </div>
+
+  <div class="card">
+    <div class="value" id="consumo">--</div>
+    <div class="label">Consumo (kW)</div>
+  </div>
+
+  <div class="card">
+    <div class="value" id="status">--</div>
+    <div class="label">Status</div>
+  </div>
+
+</div>
+
+<div class="chart">
+  <canvas id="grafico"></canvas>
+</div>
+
+<script>
+
+const supabase = window.supabase.createClient(
+  "SUA_URL",
+  "SUA_ANON"
+)
+
+async function carregar(){
+
+  // chama API
+  const api = await fetch("/api/solar")
+  const data = await api.json()
+
+  document.getElementById("geracao").innerText = data.geracao_kw.toFixed(2)
+  document.getElementById("consumo").innerText = data.consumo_kw.toFixed(2)
+  document.getElementById("status").innerText = data.status
+
+  // histórico
+  const { data: historico } = await supabase
+    .from("energia_solar")
+    .select("*")
+    .order("data",{ascending:true})
+    .limit(20)
+
+  const labels = historico.map(i=>new Date(i.data).toLocaleTimeString())
+  const valores = historico.map(i=>i.geracao_kw)
+
+  new Chart(document.getElementById("grafico"),{
+    type:"line",
+    data:{
+      labels,
+      datasets:[{
+        label:"Geração kW",
+        data:valores
+      }]
+    }
+  })
+}
+
+carregar()
+setInterval(carregar, 60000)
+
+</script>
+
+</body>
+</html>
